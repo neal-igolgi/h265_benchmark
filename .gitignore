@@ -1,0 +1,18 @@
+# Proprietary files #
+#####################
+igolgi*
+70-persistent-net.rules
+system_To\ be\ filled\ by\ O.E.M..id
+ethnaming.sh
+
+# Sample src & out folders #
+############################
+source/
+intermediate/
+output/
+
+# VMAF & scripts generated files #
+##################################
+results_vmaf/
+archive/
+
