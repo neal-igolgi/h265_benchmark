@@ -20,8 +20,8 @@ exit 1
 FILENAME="${1##*/}"
 BASENAME="${FILENAME%.*}"
 FILEIDIR="intermediate/$BASENAME"
-TIMELOG="$FILEIDIR/transcode_speed.txt"
-SAVEIMGDIR="archive/plots"
+PREV_TIMELOG="$FILEIDIR/transcode_speed.txt"
+SAVEIMGDIR="archive/${BASENAME}_plots"
 
 OUTFILE="archive/${BASENAME}_tests.csv"
 APPEND=false
@@ -90,7 +90,7 @@ do
 	VBITRATE=${COLS[4]}
 
 	# some column values are stored in log created by time util on fileapp	
-	IFS=',' read -a COLS <<< $(tac "$TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
+	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
 	CPULOAD=$COLS
 	CODECPRE='H264'
 	TRANSCSPD=${COLS[1]}
@@ -98,17 +98,17 @@ do
 	# search for single vmaf result by .ts filename first, then resort to batch results
 	xmlpath="results_vmaf/${BASENAME}_$tsfn.xml"
 	if [[ -f $xmlpath ]]; then
-		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -s "$SAVEIMGDIR/${BASENAME}_$tsfn.png" "$xmlpath")
+		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -s "$SAVEIMGDIR/$tsfn.png" "$xmlpath")
 	else
 		xmlpath="results_vmaf/${BASENAME}_batch.xml"
-		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/${BASENAME}_$tsfn.png" "$xmlpath")
+		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/$tsfn.png" "$xmlpath")
 	fi
 	# some column values come from feeding the .py script with the xml results
 	AVG=${COLS#*=}
 	STDEV=${COLS[1]#*=}
 	MIN=${COLS[2]#*=}
 	MAX=${COLS[3]#*=}
-	PLOTLINK="file://$PWD/$SAVEIMGDIR/${BASENAME}_$tsfn.png"
+	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
 
 	echo "$BASENAME,$RES,$FRAMERATE,$INTERLACED,$CLIPLEN,$CPULOAD,$CODECPRE,$VBITRATE,$TRANSCSPD,$AVG,$MIN,$MAX,$STDEV,$PLOTLINK" >> "$OUTFILE"
 done
