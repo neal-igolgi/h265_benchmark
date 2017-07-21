@@ -39,8 +39,10 @@ export BATCH_FPATH="output/vmaf_$FILENAME.bat"
 # Suppose this could be executed in parallel if desired...
 for brate in `seq $2 1000 $3`
 do
-  ./fileapp_transcode_vmaf.sh "$1" $brate $FILE_FMT $W $H
-  echo "$FILE_FMT $W $H $PWD/source/$FILENAME.yuv $PWD/output/$FILENAME/${brate}kbps.yuv" >> "$BATCH_FPATH"
+	./fileapp_transcode_vmaf.sh "$1" $brate $FILE_FMT $W $H
+	for prst in `seq 0 9`; do
+		echo "$FILE_FMT $W $H $PWD/source/$FILENAME.yuv $PWD/output/$FILENAME/${brate}kbps-$prst.yuv" >> "$BATCH_FPATH"
+	done
 done
 
 # for security

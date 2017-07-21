@@ -33,10 +33,7 @@ MUX_KBPS=$2
 FILE_FMT=$3
 FILENAME="${FILEPATH##*/}"
 BASENAME="${FILENAME%.*}"
-FILENAME="${MUX_KBPS}kbps"
-
 LOGPATH="intermediate/$BASENAME/transcode_speed.txt"
-TIME_FMT="Fileapp time for $FILENAME...\nreal %e\nuser %U\nsys  %S\n%%cpu %P\n"
 
 # Used for obtaining original bitrate of input
 #which mediainfo
@@ -45,26 +42,36 @@ TIME_FMT="Fileapp time for $FILENAME...\nreal %e\nuser %U\nsys  %S\n%%cpu %P\n"
 #fi
 #MUX_KBPS=$(( (`mediainfo --inform="General;%OverallBitRate%" $FILEPATH`+999)/1000 ))
 
-# create source raw if DNE
-if [ ! -f "source/$BASENAME.yuv" ]; then
-    mkdir -pv source/
-			ffmpeg -i "$FILEPATH" -y -c:v rawvideo -pix_fmt $FILE_FMT "source/$BASENAME.yuv"
-fi
-
-# transcode input file and log s peed
+# create stage directories and source raw if DNE
+mkdir -pv source/
 mkdir -pv intermediate/$BASENAME/
-echo "$SUDOPWD" | /usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" sudo -S fileapp -o SAME -m $MUX_KBPS "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts"
-
-# decode trancoded file
 mkdir -pv output/$BASENAME/
-ffmpeg -i "intermediate/$BASENAME/$FILENAME.ts" -y -c:v rawvideo -pix_fmt $FILE_FMT "output/$BASENAME/$FILENAME.yuv"
-
-# run single vmaf on source and output raw vids if script is called by itself (vs by batch)
-if [ -z ${BATCH_FPATH+x} ];
-then
-	unset $SUDOPWD
-
-	VMAF_PATH=$(find $PWD -name run_vmaf)
-	mkdir -pv results_vmaf/
-	"$VMAF_PATH" $FILE_FMT $4 $5 "$PWD/source/$BASENAME.yuv" "$PWD/output/$BASENAME/$FILENAME.yuv" --out-fmt xml > "$PWD/results_vmaf/${BASENAME}_$FILENAME.xml"
+if [ ! -f "source/$BASENAME.yuv" ]; then
+	ffmpeg -i "$FILEPATH" -y -c:v rawvideo -pix_fmt $FILE_FMT "source/$BASENAME.yuv"
 fi
+
+PRESET=0
+while [ $PRESET -lt 10 ]; do
+	FILENAME="${MUX_KBPS}kbps-$PRESET"
+	TIME_FMT="Fileapp time for $FILENAME...\nreal %e\nuser %U\nsys  %S\n%%cpu %P\n"
+
+	# transcode input file and log speed
+	echo "$SUDOPWD" | /usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts"
+
+	# decode trancoded file
+	ffmpeg -i "intermediate/$BASENAME/$FILENAME.ts" -y -c:v rawvideo -pix_fmt $FILE_FMT "output/$BASENAME/$FILENAME.yuv"
+
+	# run vmaf on source and output raw vids if script is called by itself (vs by batch)
+	if [ -z ${BATCH_FPATH+x} ]
+	then
+		if [ $PRESET -eq 0 ]
+		then
+			unset $SUDOPWD
+			VMAF_PATH=$(find $PWD -name run_vmaf)
+			mkdir -pv results_vmaf/
+		fi
+		"$VMAF_PATH" $FILE_FMT $4 $5 "$PWD/source/$BASENAME.yuv" "$PWD/output/$BASENAME/$FILENAME.yuv" --out-fmt xml > "$PWD/results_vmaf/${BASENAME}_$FILENAME.xml"
+	fi
+
+	let PRESET+=1
+done

@@ -23,7 +23,7 @@ FILEIDIR="intermediate/$BASENAME"
 PREV_TIMELOG="$FILEIDIR/transcode_speed.txt"
 SAVEIMGDIR="archive/${BASENAME}_plots"
 
-OUTFILE="archive/${BASENAME}_tests.csv"
+OUTFILE="archive/${BASENAME}_x265_tests.csv"
 APPEND=false
 
 # process options in cmdline
@@ -92,8 +92,9 @@ do
 	# some column values are stored in log created by time util on fileapp	
 	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
 	CPULOAD=$COLS
-	CODECPRE='H264'
 	TRANSCSPD=${COLS[1]}
+
+	CODECPRE=${tsfn##*-}
 
 	# search for single vmaf result by .ts filename first, then resort to batch results
 	xmlpath="results_vmaf/${BASENAME}_$tsfn.xml"
@@ -110,5 +111,5 @@ do
 	MAX=${COLS[3]#*=}
 	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
 
-	echo "$BASENAME,$RES,$FRAMERATE,$INTERLACED,$CLIPLEN,$CPULOAD,$CODECPRE,$VBITRATE,$TRANSCSPD,$AVG,$MIN,$MAX,$STDEV,$PLOTLINK" >> "$OUTFILE"
+	echo "${tsfn%%-*},$RES,$FRAMERATE,$INTERLACED,$CLIPLEN,$CPULOAD,$CODECPRE,$VBITRATE,$TRANSCSPD,$AVG,$MIN,$MAX,$STDEV,$PLOTLINK" >> "$OUTFILE"
 done
