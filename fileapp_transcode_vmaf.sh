@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # See usage below for description
+trap 'exit 130' INT
 
 if [ "$#" -ne 5 ]; then
   echo "Usage: "$0" <input_file.ts> <kbps_br> <format> <width> <height>

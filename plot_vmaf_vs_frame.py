@@ -67,8 +67,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-l', '--line', action='store_true', help='create line plots instead of default scatterplots')
 parser.add_argument('-o', '--overlay', action='store_true', help='plot data from different sources on the same figure')
 parser.add_argument('-v', '--verbosity', default=0, type=int, choices=[1,2], dest='statverb', help='1 - show mean&std.dev.; 2 - plus show min&max')
-parser.add_argument('-s', '--savefig', nargs=1, metavar='OUTPATH', dest='savepath', help='image of plot will be saved to outpath and not shown, if single figure, and print stats if single dataset')
-parser.add_argument('-f', '--find', nargs=1, metavar='FILENAME', dest='filelabel', help=argparse.SUPPRESS) #DEV USE: isolate single dataset from batch results via its filename (excl. extension)
+parser.add_argument('-s', '--savefig', metavar='OUTPATH', dest='savepath', help='image of plot will be saved to outpath and not shown, if single figure, and print stats if single dataset')
+parser.add_argument('-f', '--find', nargs='+', metavar='FILENAME', dest='datalabels', help=argparse.SUPPRESS) #DEV USE: isolate single/certain dataset(s) from batch results via filename pattern(s)
 parser.add_argument('infiles', nargs='+', metavar='result.xml', help='vmaf\'s XML outputfiles')
 args = parser.parse_args()
 
@@ -96,8 +96,8 @@ for xmlpath in args.infiles:
 		frames = root.find('frames').findall('frame')
 		num_fr = len(frames)
 
-		# only plot desired data from, esp batch, vmaf results if find opt is used
-		if args.filelabel and datalabel != args.filelabel[0]:
+		# only plot desired data from, esp. batch, vmaf results if find opt is used
+		if args.datalabels and not any(pattern in datalabel for pattern in args.datalabels):
 			continue
 
 		# change title key here to match the one key in fig_hdl if overlay override is enabled
@@ -174,10 +174,10 @@ for xmlpath in args.infiles:
 # show figures or, if savefig set and there's only one fig, save it, and if only one ds, print stats
 if args.savepath:
 	if len(plt_data.keys()) == 1:
-		fig.set_size_inches(16, 9, forward=True)
-		plt.savefig(args.savepath[0], dpi=fig.dpi, orientation='landscape')
 		if plt_data[plt_data.keys()[0]][0] == 1:
 			print 'mean=%.3f,stdev=%.3f,min=%.2f,max=%.2f' % (ds_avg, ds_stdev, ds_min, ds_max)
+		fig.set_size_inches(16, 9, forward=True)
+		plt.savefig(args.savepath, dpi=fig.dpi, orientation='landscape')
 		raise SystemExit
 	else:
 		print 'Error: Cannot save as more than one figure exist; displaying instead.'

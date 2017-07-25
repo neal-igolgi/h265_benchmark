@@ -17,13 +17,6 @@ EOF
 exit 1
 }
 
-FILENAME="${1##*/}"
-BASENAME="${FILENAME%.*}"
-FILEIDIR="intermediate/$BASENAME"
-PREV_TIMELOG="$FILEIDIR/transcode_speed.txt"
-SAVEIMGDIR="archive/${BASENAME}_plots"
-
-OUTFILE="archive/${BASENAME}_x265_tests.csv"
 APPEND=false
 
 # process options in cmdline
@@ -61,6 +54,13 @@ elif [[ $# -gt 1 ]]; then
 	echo "Too many input files specified."; show_help
 fi
 
+FILENAME="${1##*/}"
+BASENAME="${FILENAME%.*}"
+FILEIDIR="intermediate/$BASENAME"
+PREV_TIMELOG="$FILEIDIR/transcode_speed.txt"
+SAVEIMGDIR="archive/${BASENAME}_plots"
+OUTFILE="${OUTFILE:-archive/${BASENAME}_x265_tests.csv}"
+
 # check that mediainfo is installed and saveimg dir exists
 #which mediainfo > /dev/null
 #if [ $? -eq 1 ]; then sudo apt install -y mediainfo; fi
@@ -92,7 +92,7 @@ do
 	# some column values are stored in log created by time util on fileapp	
 	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
 	CPULOAD=$COLS
-	TRANSCSPD=${COLS[1]}
+	TRANSCSPD="${COLS[1]} s"
 
 	CODECPRE=${tsfn##*-}
 
