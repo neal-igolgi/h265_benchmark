@@ -25,7 +25,7 @@ while getopts ":o:a" opt; do
 	case $opt in
 	o)
 		OUTFILE="$OPTARG"
-		if [[ $OUTFILE =~ -.* ]]; then
+		if [[ $OUTFILE =~ ^-.* ]]; then
 			echo 'Option -o requires an argument.'
 			show_help
 		elif [[ ! -d ${OUTFILE%/*} ]]; then
@@ -67,8 +67,10 @@ OUTFILE="${OUTFILE:-archive/${BASENAME}_x265_tests.csv}"
 mkdir -pv "$SAVEIMGDIR"
 
 # truncate csv file if append is not set
-if ! $APPEND; then 
-	echo 'Clip Name,Resolution,Frame Rate,Interlaced,Clip Length,CPU Load,Codec Preset,Video Bitrate,Transcode Speed,VMAF Avg,VMAF Min,VMAF Max,VMAF Std. Deviation,Link to VMAF per Frame Plot' > "$OUTFILE"
+if ! $APPEND; then
+	IFS=$'\n:' cpinfo=( `lscpu | egrep '^CPU\(|^Core|^Model ' | sed -e 's/  \+//'` )
+	echo "${cpinfo[5]} | CPUs: ${cpinfo[1]} | Cores: ${cpinfo[3]}" > "$OUTFILE"
+	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,CPU Load,Video Bitrate,Transcode Time,Avg Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
 fi
 
 # get column result for each transcoded video in FILEIDIR folder
@@ -76,11 +78,13 @@ for tsfp in $FILEIDIR/*.ts
 do
 	tsfn="${tsfp##*/}"
 	tsfn="${tsfn%.*}"
+	FILENAME="$BASENAME-${tsfn%-*}"
+	CODECPRE=${tsfn##*-}
 
 	# extract info on transcoded .ts to derive column values
-	IFS=',' read -a COLS <<< $(mediainfo --inform="Video;%Width%x%Height%,%FrameRate%,%ScanType%,%Duration/String3%,%BitRate/String%" "$tsfp")
+	IFS=',' read -a COLS <<< $(mediainfo --inform="Video;%Width%x%Height%,%FrameRate%,%ScanType%,%Duration/String3%,%BitRate/String%,%Duration%" "$tsfp")
 	RES=$COLS
-	FRAMERATE=${COLS[1]}
+	AVGCONVR=`echo "scale=3; ${COLS[1]}*${COLS[5]}/1000" | bc`
 	if [[ ${COLS[2]} == "Interlaced" ]]; then
 		INTERLACED='yes'
 	else
@@ -92,24 +96,28 @@ do
 	# some column values are stored in log created by time util on fileapp	
 	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
 	CPULOAD=$COLS
-	TRANSCSPD="${COLS[1]} s"
-
-	CODECPRE=${tsfn##*-}
+	TRANSTM="${COLS[1]} s"
+	AVGCONVR="`echo "scale=3; $AVGCONVR/${COLS[1]}" | bc` fps"
 
 	# search for single vmaf result by .ts filename first, then resort to batch results
-	xmlpath="results_vmaf/${BASENAME}_$tsfn.xml"
-	if [[ -f $xmlpath ]]; then
-		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -s "$SAVEIMGDIR/$tsfn.png" "$xmlpath")
+	vmafxml="results_vmaf/${BASENAME}_$tsfn.xml"
+	psnrxml="results_psnr/${BASENAME}_$tsfn.xml"
+	if [[ -f $vmafxml ]]; then
+		IFS=$'\n,' read -a COLS -d '' <<< "$(./plot_vmaf_vs_frame.py -s "$SAVEIMGDIR/$tsfn.png" "$vmafxml" "$psnrxml")"
 	else
-		xmlpath="results_vmaf/${BASENAME}_batch.xml"
-		IFS=',' read -a COLS <<< $(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/$tsfn.png" "$xmlpath")
+		vmafxml="results_vmaf/${BASENAME}_batch.xml"
+		IFS=$'\n,' read -a COLS -d '' <<< "$(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/$tsfn.png" "$vmafxml" "$psnrxml")"
 	fi
 	# some column values come from feeding the .py script with the xml results
-	AVG=${COLS#*=}
-	STDEV=${COLS[1]#*=}
-	MIN=${COLS[2]#*=}
-	MAX=${COLS[3]#*=}
+	VMAFAVG=${COLS#*=}
+	VMAFSTD=${COLS[1]#*=}
+	VMAFMIN=${COLS[2]#*=}
+	VMAFMAX=${COLS[3]#*=}
+	PSNRAVG=${COLS[4]#*=}
+	PSNRSTD=${COLS[5]#*=}
+	PSNRMIN=${COLS[6]#*=}
+	PSNRMAX=${COLS[7]#*=}
 	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
 
-	echo "${tsfn%%-*},$RES,$FRAMERATE,$INTERLACED,$CLIPLEN,$CPULOAD,$CODECPRE,$VBITRATE,$TRANSCSPD,$AVG,$MIN,$MAX,$STDEV,$PLOTLINK" >> "$OUTFILE"
+	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$CPULOAD,$VBITRATE,$TRANSTM,$AVGCONVR,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
 done

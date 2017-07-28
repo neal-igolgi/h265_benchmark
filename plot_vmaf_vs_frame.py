@@ -14,6 +14,7 @@ import matplotlib.cm as cm
 
 fig_hdl = {}		#tracks figures from the same sources ('title':[figure1, figure2,...])
 plt_data = {}		#each figure info ('figure':[ds_count, was_drawn_on, frame[min1, max1,...], score_types[]]
+stats_output = []
 max_ods = 10		#max number of overlapping dataset on a plot
 iu_clr = u'#daa520'			#cursor interaction display color
 cmap = cm.get_cmap('tab10')			#plot color scheme
@@ -143,7 +144,7 @@ for xmlpath in args.infiles:
 				frmm_list[2*fr_idx] = frmm_list[2*fr_idx+1] = score
 		ds_stdev /= num_fr; ds_stdev **= 0.5
 
-		# additional text manipulation for multi-score types plots
+		# legend text manipulation for multi-score-types plots
 		score_types = plt_data[fig][3]
 		if score_t not in score_types:
 			if len(score_types) == 1:
@@ -170,15 +171,17 @@ for xmlpath in args.infiles:
 				axe.annotate('max=%.3f'%ds_max, xy=(.905, ds_max), xycoords=('figure fraction', 'data'), size=6, color=c, va='center', weight='semibold')
 		plt_data[fig][0] += 1
 		axe.legend(loc=0)
+		if len(score_types) == plt_data[fig][0]:
+			stats_output.append('%s: mean=%.3f,stdev=%.3f,min=%.2f,max=%.2f' % (score_t, ds_avg, ds_stdev, ds_min, ds_max))
 
 # show figures or, if savefig set and there's only one fig, save it, and if only one ds, print stats
 if args.savepath:
 	if len(plt_data.keys()) == 1:
-		if plt_data[plt_data.keys()[0]][0] == 1:
-			print 'mean=%.3f,stdev=%.3f,min=%.2f,max=%.2f' % (ds_avg, ds_stdev, ds_min, ds_max)
+		if plt_data[fig][0] == len(score_types):
+			for stats_str in stats_output: print stats_str
 		fig.set_size_inches(16, 9, forward=True)
 		plt.savefig(args.savepath, dpi=fig.dpi, orientation='landscape')
 		raise SystemExit
 	else:
-		print 'Error: Cannot save as more than one figure exist; displaying instead.'
+		print 'Error: Cannot save to specified path as more than one figure exist; displaying instead.'
 plt.show()

@@ -11,8 +11,9 @@ source/
 intermediate/
 output/
 
-# VMAF & scripts generated files #
-##################################
+# VMAF & scripts generated folders #
+####################################
 results_vmaf/
+results_psnr/
 archive/
 

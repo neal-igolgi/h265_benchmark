@@ -34,6 +34,9 @@ FILE_FMT=$4
 W=$5
 H=$6
 export BATCH_FPATH="output/vmaf_$FILENAME.bat"
+export PSNR_PATH=$(find $PWD -name run_psnr)
+VMAF_PATH="${PSNR_PATH%_*}_vmaf_in_batch"
+mkdir -pv results_vmaf/ results_psnr/
 > "$BATCH_FPATH"
 
 # Suppose this could be executed in parallel if desired...
@@ -49,6 +52,4 @@ done
 unset $SUDOPWD
 
 # run batch vmaf on source and outputs
-VMAF_PATH=$(find $PWD -name run_vmaf_in_batch)
-mkdir -pv results_vmaf/
 "$VMAF_PATH" "$PWD/$BATCH_FPATH" --out-fmt xml --parallelize > "$PWD/results_vmaf/${FILENAME}_batch.xml"

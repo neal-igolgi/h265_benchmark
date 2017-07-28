@@ -69,10 +69,14 @@ while [ $PRESET -lt 10 ]; do
 		then
 			unset $SUDOPWD
 			VMAF_PATH=$(find $PWD -name run_vmaf)
-			mkdir -pv results_vmaf/
+			PSNR_PATH="${VMAF_PATH%_*}_psnr"
+			mkdir -pv results_vmaf/ results_psnr/
 		fi
 		"$VMAF_PATH" $FILE_FMT $4 $5 "$PWD/source/$BASENAME.yuv" "$PWD/output/$BASENAME/$FILENAME.yuv" --out-fmt xml > "$PWD/results_vmaf/${BASENAME}_$FILENAME.xml"
 	fi
+
+	# run psnr likewise regardless whether ran alone or by batch (either case, PSNR_PATH should be set)
+	"$PSNR_PATH" $FILE_FMT $4 $5 "$PWD/source/$BASENAME.yuv" "$PWD/output/$BASENAME/$FILENAME.yuv" --out-fmt xml > "$PWD/results_psnr/${BASENAME}_$FILENAME.xml"
 
 	let PRESET+=1
 done
