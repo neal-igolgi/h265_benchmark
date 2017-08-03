@@ -49,7 +49,7 @@ do
 done
 
 # for security
-unset $SUDOPWD
+unset SUDOPWD
 
 # run batch vmaf on source and outputs
 "$VMAF_PATH" "$PWD/$BATCH_FPATH" --out-fmt xml --parallelize > "$PWD/results_vmaf/${FILENAME}_batch.xml"

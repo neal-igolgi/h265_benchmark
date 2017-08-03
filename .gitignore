@@ -1,15 +1,16 @@
 # Proprietary files #
 #####################
-igolgi*
+igolgiapp.key
 70-persistent-net.rules
 system_To\ be\ filled\ by\ O.E.M..id
 ethnaming.sh
 
-# Sample src & out folders #
-############################
+# Sample folders and temp #
+###########################
 source/
 intermediate/
 output/
+tmp*
 
 # VMAF & scripts generated folders #
 ####################################

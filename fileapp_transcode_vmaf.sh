@@ -52,12 +52,26 @@ if [ ! -f "source/$BASENAME.yuv" ]; then
 fi
 
 PRESET=0
+> 'tmp.log'
 while [ $PRESET -lt 10 ]; do
 	FILENAME="${MUX_KBPS}kbps-$PRESET"
-	TIME_FMT="Fileapp time for $FILENAME...\nreal %e\nuser %U\nsys  %S\n%%cpu %P\n"
+	#TIME_FMT="Fileapp time for $FILENAME...\nreal %e\nuser %U\nsys  %S\n%%cpu %P\n"
+	#/usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" 
 
-	# transcode input file and log speed
-	echo "$SUDOPWD" | /usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts"
+	# transcode input file and log cpu usage simultaneously
+	( echo "$SUDOPWD" | sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts" ) &
+	sleep 1	#wait briefly to ensure fileapp starts first
+	while fa_pid=$(pgrep fileapp)
+	do
+		# 100.0% is a good threshold to filter out encoding period
+		top -b -n 1 -p $fa_pid | awk -v fa=$fa_pid '$1 == fa {if ($9 > 100.0) {print $9}}' >> 'tmp.log'
+		sleep 0.1
+	done
+
+	# parse log to record encode speed and cpu load
+	echo -e "Fileapp encode time for $FILENAME..." >> "$LOGPATH"
+	awk '{s+=$1}END{printf "real %.1f\n%%cpu %.1f\n\n",NR*0.1,s/NR}' 'tmp.log' >> "$LOGPATH"
+	rm 'tmp.log'
 
 	# decode trancoded file
 	ffmpeg -i "intermediate/$BASENAME/$FILENAME.ts" -y -c:v rawvideo -pix_fmt $FILE_FMT "output/$BASENAME/$FILENAME.yuv"
@@ -65,9 +79,8 @@ while [ $PRESET -lt 10 ]; do
 	# run vmaf on source and output raw vids if script is called by itself (vs by batch)
 	if [ -z ${BATCH_FPATH+x} ]
 	then
-		if [ $PRESET -eq 0 ]
+		if [ -z ${VMAF_PATH+x} ]
 		then
-			unset $SUDOPWD
 			VMAF_PATH=$(find $PWD -name run_vmaf)
 			PSNR_PATH="${VMAF_PATH%_*}_psnr"
 			mkdir -pv results_vmaf/ results_psnr/
@@ -80,3 +93,4 @@ while [ $PRESET -lt 10 ]; do
 
 	let PRESET+=1
 done
+unset SUDOPWD

@@ -70,7 +70,7 @@ mkdir -pv "$SAVEIMGDIR"
 if ! $APPEND; then
 	IFS=$'\n:' cpinfo=( `lscpu | egrep '^CPU\(|^Core|^Model ' | sed -e 's/  \+//'` )
 	echo "${cpinfo[5]} | CPUs: ${cpinfo[1]} | Cores: ${cpinfo[3]}" > "$OUTFILE"
-	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,CPU Load,Video Bitrate,Transcode Time,Avg Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
+	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Avg Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
 fi
 
 # get column result for each transcoded video in FILEIDIR folder
@@ -94,8 +94,8 @@ do
 	VBITRATE=${COLS[4]}
 
 	# some column values are stored in log created by time util on fileapp	
-	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{sub(/%/,"",$2); printf "%.2f,%.2f", $2/100, $4+$6; exit}')
-	CPULOAD=$COLS
+	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{printf "%f,%s", $2, $4; exit}')
+	NORMCPULD="`echo "scale=2; $COLS/${cpinfo[1]}" | bc` %"
 	TRANSTM="${COLS[1]} s"
 	AVGCONVR="`echo "scale=3; $AVGCONVR/${COLS[1]}" | bc` fps"
 
@@ -119,5 +119,5 @@ do
 	PSNRMAX=${COLS[7]#*=}
 	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
 
-	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$CPULOAD,$VBITRATE,$TRANSTM,$AVGCONVR,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
+	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$AVGCONVR,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
 done
