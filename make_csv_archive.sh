@@ -62,15 +62,15 @@ SAVEIMGDIR="archive/${BASENAME}_plots"
 OUTFILE="${OUTFILE:-archive/${BASENAME}_x265_tests.csv}"
 
 # check that mediainfo is installed and saveimg dir exists
-#which mediainfo > /dev/null
-#if [ $? -eq 1 ]; then sudo apt install -y mediainfo; fi
+which mediainfo > /dev/null
+if [ $? -eq 1 ]; then sudo apt install -y mediainfo; fi
 mkdir -pv "$SAVEIMGDIR"
 
 # truncate csv file if append is not set
 if ! $APPEND; then
 	IFS=$'\n:' cpinfo=( `lscpu | egrep '^CPU\(|^Core|^Model ' | sed -e 's/  \+//'` )
 	echo "${cpinfo[5]} | CPUs: ${cpinfo[1]} | Cores: ${cpinfo[3]}" > "$OUTFILE"
-	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Avg Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
+	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
 fi
 
 # get column result for each transcoded video in FILEIDIR folder
@@ -84,7 +84,7 @@ do
 	# extract info on transcoded .ts to derive column values
 	IFS=',' read -a COLS <<< $(mediainfo --inform="Video;%Width%x%Height%,%FrameRate%,%ScanType%,%Duration/String3%,%BitRate/String%,%Duration%" "$tsfp")
 	RES=$COLS
-	AVGCONVR=`echo "scale=3; ${COLS[1]}*${COLS[5]}/1000" | bc`
+	CONVRATE=`echo "scale=3; ${COLS[1]}*${COLS[5]}/1000" | bc`
 	if [[ ${COLS[2]} == "Interlaced" ]]; then
 		INTERLACED='yes'
 	else
@@ -97,7 +97,7 @@ do
 	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{printf "%f,%s", $2, $4; exit}')
 	NORMCPULD="`echo "scale=2; $COLS/${cpinfo[1]}" | bc` %"
 	TRANSTM="${COLS[1]} s"
-	AVGCONVR="`echo "scale=3; $AVGCONVR/${COLS[1]}" | bc` fps"
+	CONVRATE="`echo "scale=3; $CONVRATE/${COLS[1]}" | bc` fps"
 
 	# search for single vmaf result by .ts filename first, then resort to batch results
 	vmafxml="results_vmaf/${BASENAME}_$tsfn.xml"
@@ -119,5 +119,5 @@ do
 	PSNRMAX=${COLS[7]#*=}
 	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
 
-	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$AVGCONVR,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
+	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
 done

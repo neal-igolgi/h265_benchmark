@@ -5,8 +5,6 @@ trap 'exit 130' INT
 if [ "$#" -ne 5 ]; then
   echo "Usage: "$0" <input_file.ts> <kbps_br> <format> <width> <height>
 
-    Decodes input_file into its YUV format ('source'), then transcodes it in kbps_br via fileapp and decodes 
-    that into another YUV ('output'). Compares 'source' and 'output' via VMAF, and generates XML result.
     *note: VMAF must be in this or its children directories; ffmpeg & fileapp (igolgi,inc.) must be installed
 
 	<input_file.ts>		video stream file to be VMAF-ed in specified br
