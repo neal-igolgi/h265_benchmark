@@ -10,14 +10,14 @@ In addition, testing is done with fileapp slightly modified in quality-to-preset
 
 ###### \*There are four interwoven bash scripts, though only two are necessarily ran to procure formatted test output. (Consult flowchart.jpg)
 
-- *Fileapp_transcode_vmaf.sh* takes a video source, first decodes it, then transcodes it through **fileapp** for a specified bitrate for each x265 testing preset 0-9 (mapped to --quality 1 to 10) and decodes the fileapp output. It then uses vmaf, located either in the script directory or its sub-directories, to compare the initial and latest decoded videos, generating VMAF and PSNR scores for each of the 10 preset outputs.  
-To run this:  
+- *Fileapp_transcode_vmaf.sh* takes a video source, first decodes it, then transcodes it through **fileapp** for a specified bitrate for each x265 testing preset 0-9 (mapped to --quality 1 to 10) and decodes the fileapp output. It then uses vmaf, located either in the script directory or its sub-directories, to compare the initial and latest decoded videos, generating VMAF and PSNR scores for each of the 10 preset outputs. 
+To run this:
    ```bash
    ./fileapp_transcode_vmaf.sh <input_file.ts> <kbps_br> <format> <width> <height>
    # kbps_br is passed to fileapp while format, width, and height are vmaf required parameters
    ```
 
-- *Batch_fileapp_transcode_vmaf.sh* is a batch version of the previous, much like **_run_vmaf_in_batch_** is to **_run_vmaf_**. It takes a range of kbitrate and runs *fileapp_transcode_vmaf.sh* for each of them by interval kbr. (So number of output is 10 presets x floor(range/intvals)+1). To run this:  
+- *Batch_fileapp_transcode_vmaf.sh* is a batch version of the previous, much like **_run_vmaf_in_batch_** is to **_run_vmaf_**. It takes a range of kbitrate and runs *fileapp_transcode_vmaf.sh* for each of them by interval kbr. (So number of output is 10 presets x floor(range/intvals)+1). To run this:
    ```bash
    ./batch_fileapp_transcode_vmaf.sh <input_file.ts> <start_kbps> <intvals> <end_kbps> <format> <width> <height>
    ```
