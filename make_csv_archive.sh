@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # See show_help() below for description
 
+CLOUD_ADDR='96.87.115.134:5118'
+
 show_help() {
 cat << EOF
 Usage: $0 [-o OUTFILE] [-a] <input_file.ts>
@@ -117,7 +119,11 @@ do
 	PSNRSTD=${COLS[5]#*=}
 	PSNRMIN=${COLS[6]#*=}
 	PSNRMAX=${COLS[7]#*=}
-	PLOTLINK="file://$PWD/$SAVEIMGDIR/$tsfn.png"
+	PLOTLINK="http://$CLOUD_ADDR/${BASENAME}_plots/$tsfn.png"
 
 	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
 done
+
+# upload all plots & output videos to cloud server
+rsync -urvh --progress --delete --chmod=D755 --exclude '*.txt' "$SAVEIMGDIR" "$FILEIDIR" igolgi@10.1.10.115:/var/www/h265_media
+

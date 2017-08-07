@@ -24,7 +24,7 @@ To run this:
 
 After running either one of the above on a target file:
 
-- *Make_csv_archive.sh* will extract certain specs from the fileapp outputs via **mediainfo** utility and from the speed log made by *fileapp_transcode_vmaf.sh*, plot the VMAF and PSNR data together from vmaf, and create a .csv file with the information along with images of each plot. To run this:
+- *Make_csv_archive.sh* will extract certain specs from the fileapp outputs via **mediainfo** utility and from the speed log made by *fileapp_transcode_vmaf.sh*, plot the VMAF and PSNR data together from vmaf, and create a .csv file with the information along with images of each plot. Lastly, it uploads plots and videos to local server. To run this:
    ```bash
    ./make_csv_archive.sh [-o OUTFILE] [-a] <input_file.ts>
    # note that the input_file should be simply the same param used for the first script
