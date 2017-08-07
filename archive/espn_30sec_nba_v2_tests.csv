@@ -1,2 +1,0 @@
-Clip Name,Resolution,Frame Rate,Interlaced,Clip Length,CPU Load,Codec Preset,Video Bitrate,Transcode Speed,VMAF Avg,VMAF Min,VMAF Max,VMAF Std. Deviation,Link to VMAF per Frame Plot
-ss,,,no,,,H264,,,Error: 'results_vmaf/ss_batch.xml' is not a valid file path. Skipping. Error: Cannot save as more than one figure exist; displaying instead.,,,,file:///home/bli/h265_benchmark/archive/plots/ss_*.png

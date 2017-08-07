@@ -72,7 +72,7 @@ mkdir -pv "$SAVEIMGDIR"
 if ! $APPEND; then
 	IFS=$'\n:' cpinfo=( `lscpu | egrep '^CPU\(|^Core|^Model ' | sed -e 's/  \+//'` )
 	echo "${cpinfo[5]} | CPUs: ${cpinfo[1]} | Cores: ${cpinfo[3]}" > "$OUTFILE"
-	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame' >> "$OUTFILE"
+	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame,Output Video' >> "$OUTFILE"
 fi
 
 # get column result for each transcoded video in FILEIDIR folder
@@ -120,8 +120,9 @@ do
 	PSNRMIN=${COLS[6]#*=}
 	PSNRMAX=${COLS[7]#*=}
 	PLOTLINK="http://$CLOUD_ADDR/${BASENAME}_plots/$tsfn.png"
+	VIDEOLINK="http://$CLOUD_ADDR/$BASENAME/$tsfn.ts"
 
-	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK" >> "$OUTFILE"
+	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK,$VIDEOLINK" >> "$OUTFILE"
 done
 
 # upload all plots & output videos to cloud server
