@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """Generate plots of at least one .xml file from run_vmaf/_etc output for VMAF(/ETC)_Score vs Frame."""
-__copyright__ = "Copyright 2017, igolgi, Inc."
-__credits__ = ["Ben Li", "Stephen Martucci"]
+__credits__ = ["Ben Li", "Stephen Martucci", "Kishore Ramachandran"]
 __maintainer__ = "Ben Li"
 __contact__ = "ben.li@igolgi.com"
 __date__ = "July 07, 2017"
-__status__ = "Development"
+__status__ = "Production Beta"
 
 import argparse, os.path, re
 import xml.etree.ElementTree as et
@@ -21,15 +20,17 @@ cmap = cm.get_cmap('tab10')			#plot color scheme
 
 def init_newplot( figr ):
 	"""Initializes an AxesSubplot instance on a figure obj with its labels and interactives."""
-	title_parts = title.rsplit('_', 1)
+	nosuftitle = title.rsplit('_', 1)[0]
 	ax = figr.add_subplot(111)
-	ax.set_title(title_parts[0], y=1.05, fontweight='bold')
+	ax.set_title(nosuftitle, y=1.05, fontweight='bold')
 	ax.set_xlabel('Frame', labelpad=5, weight='bold')
 	ax.set_ylabel(score_t+' Score', labelpad=10, weight='bold')
-	ax.set_xlim((0, num_fr))#; ax.set_ylim((0,100))
+	ax.set_xlim((0, num_fr))
+	if not args.auto:
+		ax.set_ylim((0,100))
 	ax.minorticks_on()
 	ax.grid(b=True, which='major', axis='y', linestyle=':', linewidth=1)
-	ax.annotate('Resolution:\n'+title_parts[1], xy=(.01,.03), xycoords='figure fraction', va='center')
+	ax.annotate('Resolution:\n'+resol, xy=(.06,.03), xycoords='figure fraction', va='center', ha='center')
 	ax.annotate('# frames:\n%u'%num_fr, xy=(.945,.03), xycoords='figure fraction', va='center', ha='center')
 
 	plt_data[figr] = [0.0, False, [100.0, 0.0]*num_fr, [score_t]]
@@ -65,12 +66,13 @@ def on_click( event ):
 
 # MAIN CODE STARTS HERE
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('-a', '--auto-scale', action='store_true', dest='auto', help='autoscale y-axis scores instead of 0-100 set range')
 parser.add_argument('-l', '--line', action='store_true', help='create line plots instead of default scatterplots')
 parser.add_argument('-o', '--overlay', action='store_true', help='plot data from different sources on the same figure')
-parser.add_argument('-v', '--verbosity', default=0, type=int, choices=[1,2], dest='statverb', help='1 - show mean&std.dev.; 2 - plus show min&max')
+parser.add_argument('-v', '--verbosity', default=0, type=int, choices=[1,2], dest='statverb', help='1 - show mean & std.dev.; 2 - plus show min & max')
 parser.add_argument('-s', '--savefig', metavar='OUTPATH', dest='savepath', help='image of plot will be saved to outpath and not shown, if single figure, and print stats if single dataset')
 parser.add_argument('-f', '--find', nargs='+', metavar='FILENAME', dest='datalabels', help=argparse.SUPPRESS) #DEV USE: isolate single/certain dataset(s) from batch results via filename pattern(s)
-parser.add_argument('infiles', nargs='+', metavar='result.xml', help='vmaf\'s XML outputfiles')
+parser.add_argument('infiles', nargs='+', metavar='result.xml', help='vmaf\'s XML output files')
 args = parser.parse_args()
 
 for xmlpath in args.infiles:
@@ -91,8 +93,10 @@ for xmlpath in args.infiles:
 			print 'Error: \'%s\' is not a proper XML file. Skipping.' % xmlpath
 			break
 		file_id = root.find('asset').get('identifier')
-		title = re.match("[a-z]+_[\d_]+_([^:\?*+%]+)_vs_([^:\?*+%]+)_[\dx]+_.*", file_id).group(1)
-		datalabel = re.match("[a-z]+_[\d_]+_([^:\?*+%]+)_vs_([^:\?*+%]+)_[\dx]+_.*", file_id).group(2)
+		matches = re.match("[a-z]+_[\d_]+_([^:\?*+%]+)_vs_([^:\?*+%]+)_[\da-z]+_q_([\dx]+)", file_id)
+		title = matches.group(1)
+		datalabel = matches.group(2)
+		resol = matches.group(3)
 		score_t = root.get('executorId').split('_', 1)[0]
 		frames = root.find('frames').findall('frame')
 		num_fr = len(frames)
@@ -163,12 +167,12 @@ for xmlpath in args.infiles:
 		else:
 			axe.scatter(range(num_fr), dataset, label=datalabel, s=10, color=c, alpha=.5)
 		if args.statverb >= 1:
-			axe.annotate('mean=%.2f, dev=%.2f'%(ds_avg,ds_stdev), xy=(.905, ds_avg), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='bold')
+			axe.annotate('mean=%.2f, dev=%.2f'%(ds_avg,ds_stdev), xy=(.905, ds_avg), xycoords=('figure fraction', 'data'), size=8, color=c, va='center', weight='bold')
 		if args.statverb >= 2:
 			if ds_min != 0:
-				axe.annotate('min=%.3f'%ds_min, xy=(.905, ds_min), xycoords=('figure fraction', 'data'), size=6, color=c, va='center', weight='semibold')
+				axe.annotate('min=%.3f'%ds_min, xy=(.905, ds_min), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
 			if ds_max != 100:
-				axe.annotate('max=%.3f'%ds_max, xy=(.905, ds_max), xycoords=('figure fraction', 'data'), size=6, color=c, va='center', weight='semibold')
+				axe.annotate('max=%.3f'%ds_max, xy=(.905, ds_max), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
 		plt_data[fig][0] += 1
 		axe.legend(loc=0)
 		if len(score_types) == plt_data[fig][0]:
