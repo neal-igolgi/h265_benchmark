@@ -10,7 +10,7 @@ In addition, testing is done with fileapp slightly modified in quality-to-preset
 
 ###### \*There are four interwoven bash scripts, though only two are necessarily ran to procure formatted test output. (Consult flowchart.jpg)
 
-- *Fileapp_transcode_vmaf.sh* takes a video source, first decodes it, then transcodes it through **fileapp** for a specified bitrate for each x265 testing preset 0-9 (mapped to --quality 1 to 10) and decodes the fileapp output. It then uses vmaf, located either in the script directory or its sub-directories, to compare the initial and latest decoded videos, generating VMAF and PSNR scores for each of the 10 preset outputs. 
+- *Fileapp_vmaf.sh* takes a video source, first decodes it, then transcodes it through **fileapp** for a specified bitrate for each x265 testing preset 0-9 (mapped to --quality 1 to 10) and decodes the fileapp output. It then uses vmaf, located either in the script directory or its sub-directories, to compare the initial and latest decoded videos, generating VMAF and PSNR scores for each of the 10 preset outputs. 
 To run this:
    ```bash
    ./fileapp_vmaf.sh <input_file.ts> <kbps_br> <format> <width> <height>

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # See show_help() below for description
 
-CLOUD_ADDR='96.87.115.134:5118'
+#CLOUD_ADDR='96.87.115.134:5118'
+CLOUD_ADDR='10.1.10.115:8080'
 
 show_help() {
 cat << EOF
@@ -72,7 +73,7 @@ mkdir -pv "$SAVEIMGDIR"
 if ! $APPEND; then
 	IFS=$'\n:' cpinfo=( `lscpu | egrep '^CPU\(|^Core|^Model ' | sed -e 's/  \+//'` )
 	echo "${cpinfo[5]} | CPUs: ${cpinfo[1]} | Cores: ${cpinfo[3]}" > "$OUTFILE"
-	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Video Bitrate,Transcode Time,Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame,Output Video' >> "$OUTFILE"
+	echo 'Clip Name,Resolution,Codec Preset,Interlaced,Clip Length,Normalized CPU,Transcode Time,Conversion Rate,VMAF Avg,VMAF Min,VMAF Max,VMAF Std.dev.,PSNR Avg,PSNR Min,PSNR Max,PSNR Std.dev.,VMAF & PSNR per Frame,Output Video' >> "$OUTFILE"
 fi
 
 # get column result for each transcoded video in FILEIDIR folder
@@ -84,16 +85,15 @@ do
 	CODECPRE=${tsfn##*-}
 
 	# extract info on transcoded .ts to derive column values
-	IFS=',' read -a COLS <<< $(mediainfo --inform="Video;%Width%x%Height%,%FrameRate%,%ScanType%,%Duration/String3%,%BitRate/String%,%Duration%" "$tsfp")
+	IFS=',' read -a COLS <<< $(mediainfo --inform="Video;%Width%x%Height%,%FrameRate%,%ScanType%,%Duration/String3%,%Duration%" "$tsfp")
 	RES=$COLS
-	CONVRATE=`echo "scale=3; ${COLS[1]}*${COLS[5]}/1000" | bc`
+	CONVRATE=`echo "scale=3; ${COLS[1]}*${COLS[4]}/1000" | bc`
 	if [[ ${COLS[2]} == "Interlaced" ]]; then
 		INTERLACED='yes'
 	else
 		INTERLACED='no'
 	fi
 	CLIPLEN=${COLS[3]}
-	VBITRATE=${COLS[4]}
 
 	# some column values are stored in log created by time util on fileapp	
 	IFS=',' read -a COLS <<< $(tac "$PREV_TIMELOG" | awk -v RS= -v fn="$tsfn" '$0~fn{printf "%f,%s", $2, $4; exit}')
@@ -101,15 +101,14 @@ do
 	TRANSTM="${COLS[1]} s"
 	CONVRATE="`echo "scale=3; $CONVRATE/${COLS[1]}" | bc` fps"
 
-	# search for single vmaf result by .ts filename first, then resort to batch results
-	vmafxml="results_vmaf/${BASENAME}_$tsfn.xml"
+	# plot, save, and get stats of vmaf+psnr for each video
+	vmafxml="results_vmaf/${BASENAME}_${tsfn%-*}_batch.xml"
 	psnrxml="results_psnr/${BASENAME}_$tsfn.xml"
-	if [[ -f $vmafxml ]]; then
-		IFS=$'\n,' read -a COLS -d '' <<< "$(./plot_vmaf_vs_frame.py -s "$SAVEIMGDIR/$tsfn.png" "$vmafxml" "$psnrxml")"
-	else
+	if [[ ! -f $vmafxml ]]; then
 		vmafxml="results_vmaf/${BASENAME}_batch.xml"
-		IFS=$'\n,' read -a COLS -d '' <<< "$(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/$tsfn.png" "$vmafxml" "$psnrxml")"
 	fi
+	IFS=$'\n,' read -a COLS -d '' <<< "$(./plot_vmaf_vs_frame.py -f "$tsfn" -s "$SAVEIMGDIR/$tsfn.png" "$vmafxml" "$psnrxml")"
+
 	# some column values come from feeding the .py script with the xml results
 	VMAFAVG=${COLS#*=}
 	VMAFSTD=${COLS[1]#*=}
@@ -122,7 +121,7 @@ do
 	PLOTLINK="http://$CLOUD_ADDR/${BASENAME}_plots/$tsfn.png"
 	VIDEOLINK="http://$CLOUD_ADDR/$BASENAME/$tsfn.ts"
 
-	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$VBITRATE,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK,$VIDEOLINK" >> "$OUTFILE"
+	echo "$FILENAME,$RES,$CODECPRE,$INTERLACED,$CLIPLEN,$NORMCPULD,$TRANSTM,$CONVRATE,$VMAFAVG,$VMAFMIN,$VMAFMAX,$VMAFSTD,$PSNRAVG,$PSNRMIN,$PSNRMAX,$PSNRSTD,$PLOTLINK,$VIDEOLINK" >> "$OUTFILE"
 done
 
 # upload all plots & output videos to cloud server

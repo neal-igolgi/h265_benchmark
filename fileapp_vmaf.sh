@@ -102,5 +102,5 @@ if ! $BATCH_SCRIPT
 then
 	unset SUDOPWD
 
-	"$VMAF_PATH" "$PWD/$BATCH_FPATH" --out-fmt xml --parallelize > "$PWD/results_vmaf/$BASENAME-${FILENAME%-*}_batch.xml"
+	"$VMAF_PATH" "$PWD/$BATCH_FPATH" --out-fmt xml --parallelize > "$PWD/results_vmaf/$BASENAME_${FILENAME%-*}_batch.xml"
 fi
