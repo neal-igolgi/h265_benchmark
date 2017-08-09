@@ -9,12 +9,12 @@ Usage: $0 [-o OUTFILE] [-a] <input_file.ts>
 
     Creates or appends to a CSV file that holds information about each transcoded version
     of the input source. This script uses plot_vmaf_vs_frame.py and should be ran right 
-    after (batch_)fileapp_transcode_vmaf.sh with the same input_file.ts.
+    after (batch_)fileapp_vmaf.sh with the same input_file.ts.
 
     -o OUTFILE      write csv output to OUTFILE instead of default out path
     -a              append to output file instead of overwriting it
 
-    input_file.ts   video stream file previously ran through fileapp_transcode_vmaf.sh
+    input_file.ts   video stream file previously ran through fileapp_vmaf.sh
 EOF
 exit 1
 }

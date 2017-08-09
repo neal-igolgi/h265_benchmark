@@ -13,18 +13,18 @@ In addition, testing is done with fileapp slightly modified in quality-to-preset
 - *Fileapp_transcode_vmaf.sh* takes a video source, first decodes it, then transcodes it through **fileapp** for a specified bitrate for each x265 testing preset 0-9 (mapped to --quality 1 to 10) and decodes the fileapp output. It then uses vmaf, located either in the script directory or its sub-directories, to compare the initial and latest decoded videos, generating VMAF and PSNR scores for each of the 10 preset outputs. 
 To run this:
    ```bash
-   ./fileapp_transcode_vmaf.sh <input_file.ts> <kbps_br> <format> <width> <height>
+   ./fileapp_vmaf.sh <input_file.ts> <kbps_br> <format> <width> <height>
    # kbps_br is passed to fileapp while format, width, and height are vmaf required parameters
    ```
 
-- *Batch_fileapp_transcode_vmaf.sh* is a batch version of the previous, much like **_run_vmaf_in_batch_** is to **_run_vmaf_**. It takes a range of kbitrate and runs *fileapp_transcode_vmaf.sh* for each of them by interval kbr. (So number of output is 10 presets x floor(range/intvals)+1). To run this:
+- *Batch_fileapp_vmaf.sh* is a batch version of the previous, much like **_run_vmaf_in_batch_** is to **_run_vmaf_**. It takes a range of kbitrate and runs *fileapp_vmaf.sh* for each of them by interval kbr. (So number of output is 10 presets x floor(range/intvals)+1). To run this:
    ```bash
-   ./batch_fileapp_transcode_vmaf.sh <input_file.ts> <start_kbps> <intvals> <end_kbps> <format> <width> <height>
+   ./batch_fileapp_vmaf.sh <input_file.ts> <start_kbps> <intvals> <end_kbps> <format> <width> <height>
    ```
 
 After running either one of the above on a target file:
 
-- *Make_csv_archive.sh* will extract certain specs from the fileapp outputs via **mediainfo** utility and from the speed log made by *fileapp_transcode_vmaf.sh*, plot the VMAF and PSNR data together from vmaf, and create a .csv file with the information along with images of each plot. Lastly, it uploads plots and videos to local server. To run this:
+- *Make_csv_archive.sh* will extract certain specs from the fileapp outputs via **mediainfo** utility and from the speed log made by *fileapp_vmaf.sh*, plot the VMAF and PSNR data together from vmaf, and create a .csv file with the information along with images of each plot. Lastly, it uploads plots and videos to local server. To run this:
    ```bash
    ./make_csv_archive.sh [-o OUTFILE] [-a] <input_file.ts>
    # note that the input_file should be simply the same param used for the first script

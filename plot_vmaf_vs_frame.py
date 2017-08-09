@@ -167,12 +167,12 @@ for xmlpath in args.infiles:
 		else:
 			axe.scatter(range(num_fr), dataset, label=datalabel, s=10, color=c, alpha=.5)
 		if args.statverb >= 1:
-			axe.annotate('mean=%.2f, dev=%.2f'%(ds_avg,ds_stdev), xy=(.905, ds_avg), xycoords=('figure fraction', 'data'), size=8, color=c, va='center', weight='bold')
+			axe.annotate('mean=%.2f, dev=%.2f'%(ds_avg,ds_stdev), xy=(.903, ds_avg), xycoords=('figure fraction', 'data'), size=8, color=c, va='center', weight='bold')
 		if args.statverb >= 2:
 			if ds_min != 0:
-				axe.annotate('min=%.3f'%ds_min, xy=(.905, ds_min), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
+				axe.annotate('<--min=%.3f'%ds_min, xy=(.903, ds_min), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
 			if ds_max != 100:
-				axe.annotate('max=%.3f'%ds_max, xy=(.905, ds_max), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
+				axe.annotate('<--max=%.3f'%ds_max, xy=(.903, ds_max), xycoords=('figure fraction', 'data'), size=7, color=c, va='center', weight='semibold')
 		plt_data[fig][0] += 1
 		axe.legend(loc=0)
 		if len(score_types) == plt_data[fig][0]:

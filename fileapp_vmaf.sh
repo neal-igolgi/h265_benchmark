@@ -3,13 +3,14 @@
 trap 'exit 130' INT
 
 if [ "$#" -ne 5 ]; then
-  echo "Usage: "$0" <input_file.ts> <kbps_br> <format> <width> <height>
+  echo "Usage: "$0" <input_file.ts> <kbps_br> <pix_fmt> <width> <height>
 
     *note: VMAF must be in this or its children directories; ffmpeg & fileapp (igolgi,inc.) must be installed
 
 	<input_file.ts>		video stream file to be VMAF-ed in specified br
 	<kbps_br>		bitrate to transcode input at via fileapp
-	<format>		one of yuv420p, yuv422p, yuv444p, yuv420p10le, yuv422p10le, yuv444p10le
+	<pix_fmt>		one of { yuv420p, yuv422p, yuv444p, yuv420p10le, 
+					yuv422p10le, yuv444p10le } as allowed by vmaf
 	<width, height>		dimensions of input file as args for vmaf"
   exit 0
 fi
@@ -18,6 +19,7 @@ fi
 if [ -z ${SUDOPWD+x} ];
 then
 	read -p "[sudo] password for $USER: " -s SUDOPWD
+	sudo -K
 	echo "$SUDOPWD" | sudo -S true 2>/dev/null
 	if [ $? -ne 0 ]; then
 		echo -e "\nSorry, that's the wrong answer."
@@ -57,14 +59,15 @@ while [ $PRESET -lt 10 ]; do
 	#/usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" 
 
 	# transcode input file and log cpu usage simultaneously
-	( echo "$SUDOPWD" | sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts" ) &
-	sleep 1	#wait briefly to ensure fileapp starts first
+	( echo "$SUDOPWD" | sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) --audiocodec aaclc --audiobitrate 64 --audiovolume 100 "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts" ) &
+	sleep 1.5	#wait briefly to ensure fileapp starts first
 	while fa_pid=$(pgrep fileapp)
 	do
 		# 100.0% is a good threshold to filter out encoding period
 		top -b -n 1 -p $fa_pid | awk -v fa=$fa_pid '$1 == fa {if ($9 > 100.0) {print $9}}' >> 'tmp.log'
 		sleep 0.1
 	done
+	wait
 
 	# parse log to record encode speed and cpu load
 	echo -e "Fileapp encode time for $FILENAME..." >> "$LOGPATH"
@@ -77,13 +80,15 @@ while [ $PRESET -lt 10 ]; do
 	# run vmaf on source and output raw vids if script is called by itself (vs by batch)
 	if [ -z ${BATCH_FPATH+x} ]
 	then
-		if [ -z ${VMAF_PATH+x} ]
-		then
-			VMAF_PATH=$(find $PWD -name run_vmaf)
-			PSNR_PATH="${VMAF_PATH%_*}_psnr"
-			mkdir -pv results_vmaf/ results_psnr/
-		fi
-		"$VMAF_PATH" $FILE_FMT $4 $5 "$PWD/source/$BASENAME.yuv" "$PWD/output/$BASENAME/$FILENAME.yuv" --out-fmt xml > "$PWD/results_vmaf/${BASENAME}_$FILENAME.xml"
+		BATCH_SCRIPT=false
+		BATCH_FPATH="output/vmaf_$BASENAME-${FILENAME%-*}.bat"
+		PSNR_PATH=$(find $PWD -name run_psnr)
+		VMAF_PATH="${PSNR_PATH%_*}_vmaf_in_batch"
+		mkdir -pv results_vmaf/ results_psnr/
+
+		echo "$FILE_FMT $4 $5 $PWD/source/$BASENAME.yuv $PWD/output/$BASENAME/$FILENAME.yuv" > "$BATCH_FPATH"
+	else
+		echo "$FILE_FMT $4 $5 $PWD/source/$BASENAME.yuv $PWD/output/$BASENAME/$FILENAME.yuv" >> "$BATCH_FPATH"
 	fi
 
 	# run psnr likewise regardless whether ran alone or by batch (either case, PSNR_PATH should be set)
@@ -91,4 +96,11 @@ while [ $PRESET -lt 10 ]; do
 
 	let PRESET+=1
 done
-unset SUDOPWD
+
+# run vmaf on single bitrate, all presets batch; if called by batch, batch will handle this
+if ! $BATCH_SCRIPT
+then
+	unset SUDOPWD
+
+	"$VMAF_PATH" "$PWD/$BATCH_FPATH" --out-fmt xml --parallelize > "$PWD/results_vmaf/$BASENAME-${FILENAME%-*}_batch.xml"
+fi
