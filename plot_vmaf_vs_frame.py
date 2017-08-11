@@ -23,9 +23,13 @@ def init_newplot( figr ):
 	nosuftitle = title.rsplit('_', 1)[0]
 	ax = figr.add_subplot(111)
 	ax.set_title(nosuftitle, y=1.05, fontweight='bold')
-	ax.set_xlabel('Frame', labelpad=5, weight='bold')
+	if not args.fps:
+		ax.set_xlabel('Frame', labelpad=5, weight='bold')
+		ax.set_xlim((0, num_fr))
+	else:
+		ax.set_xlabel('Time (s)', labelpad=5, weight='bold')
+		ax.set_xlim((0, num_fr/args.fps))
 	ax.set_ylabel(score_t+' Score', labelpad=10, weight='bold')
-	ax.set_xlim((0, num_fr))
 	if not args.auto:
 		ax.set_ylim((0,100))
 	ax.minorticks_on()
@@ -42,8 +46,12 @@ def on_click( event ):
 	try:
 		fig = ax.get_figure()
 		fdref = plt_data[fig]
-		x_pos = int(round(event.xdata))
-		fmin = fdref[2][2*x_pos]; fmax = fdref[2][2*x_pos+1]
+		if args.fps:
+			x_ds = int(round(event.xdata*args.fps))
+			x_pos = x_ds/args.fps
+		else:
+			x_ds = x_pos = int(round(event.xdata))
+		fmin = fdref[2][2*x_ds]; fmax = fdref[2][2*x_ds+1]
 
 		if fdref[1]:
 			# so as not to delete a dataset in 'line' plots when no click line was (re)drawn
@@ -51,9 +59,10 @@ def on_click( event ):
 			del ax.texts[-1]
 		ax.axvline(x_pos, color=iu_clr, linewidth=1)
 		if fdref[0] == 1:
-			ax.text(.5, 1.01, 'frame = %u, score = %.4f'%(x_pos, fmin), color=iu_clr, ha='center', va='bottom', style='italic', transform=ax.transAxes)
+			ax.text(.5, 1.01, 'frame = %u, score = %.4f'%(x_ds, fmin), color=iu_clr, ha='center', va='bottom', style='italic', transform=ax.transAxes)
 		else:
-			ax.text(.5, 1.01, 'frame = %u, min = %.2f, max = %.2f, range = %.2f'%(x_pos, fmin, fmax, fmax-fmin), color=iu_clr, ha='center', va='bottom', style='italic', transform=ax.transAxes)
+			ax.text(.5, 1.01, 'frame = %u, min = %.2f, max = %.2f, range = %.2f'%(x_ds, fmin, fmax, fmax-fmin), color=iu_clr, ha='center', va='bottom', style='italic', transform=ax.transAxes)
+
 		event.canvas.draw()
 		fdref[1] = True
 	# when clicking outside of plot area, ignore error
@@ -71,6 +80,7 @@ parser.add_argument('-l', '--line', action='store_true', help='create line plots
 parser.add_argument('-o', '--overlay', action='store_true', help='plot data from different sources on the same figure')
 parser.add_argument('-v', '--verbosity', default=0, type=int, choices=[1,2], dest='statverb', help='1 - show mean & std.dev.; 2 - plus show min & max')
 parser.add_argument('-s', '--savefig', metavar='OUTPATH', dest='savepath', help='image of plot will be saved to outpath and not shown, if single figure, and print stats if single dataset')
+parser.add_argument('-t', '--time', type=float, metavar='FRAMERATE', dest='fps', help='plot vmaf vs time instead; making x-axis with respect to time or length of video')
 parser.add_argument('-f', '--find', nargs='+', metavar='FILENAME', dest='datalabels', help=argparse.SUPPRESS) #DEV USE: isolate single/certain dataset(s) from batch results via filename pattern(s)
 parser.add_argument('infiles', nargs='+', metavar='result.xml', help='vmaf\'s XML output files')
 args = parser.parse_args()
@@ -124,13 +134,19 @@ for xmlpath in args.infiles:
 			else:
 				axe = fig.gca()
 
-		# extract (frame, score) data and find global [min,max]/frame & [min,max, std.dev.]/dataset
+		# extract (frame|time, score) data and find global [min,max]/frame & [min,max, std.dev.]/dataset
+		x_var = []
 		dataset = []
 		ds_avg = float(root.find('aggregate').get(score_t+'_score'))
 		ds_min = 100.0; ds_max = 0.0
 		ds_stdev = 0.0
 		ds_count = plt_data[fig][0]
 		for fr_idx in range(num_fr):
+			if args.fps:
+				x_var.append(fr_idx/args.fps)
+			else:
+				x_var.append(fr_idx)
+
 			score = float(frames[fr_idx].get(score_t+'_score'))
 			dataset.append(score)
 			ds_stdev += (score - ds_avg)**2
@@ -163,9 +179,9 @@ for xmlpath in args.infiles:
 		# add dataset & info labels to subplot, readjust legend, and increment ds count for this figure
 		c = cmap(plt_data[fig][0] / max_ods)
 		if args.line:
-			axe.plot(range(num_fr), dataset, label=datalabel, color=c, linewidth=1)
+			axe.plot(x_var, dataset, label=datalabel, color=c, linewidth=1)
 		else:
-			axe.scatter(range(num_fr), dataset, label=datalabel, s=10, color=c, alpha=.5)
+			axe.scatter(x_var, dataset, label=datalabel, s=10, color=c, alpha=.5)
 		if args.statverb >= 1:
 			axe.annotate('mean=%.2f, dev=%.2f'%(ds_avg,ds_stdev), xy=(.903, ds_avg), xycoords=('figure fraction', 'data'), size=8, color=c, va='center', weight='bold')
 		if args.statverb >= 2:
