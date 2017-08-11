@@ -59,8 +59,8 @@ while [ $PRESET -lt 10 ]; do
 	#/usr/bin/time -o "$LOGPATH" -a -f "$TIME_FMT" 
 
 	# transcode input file and log cpu usage simultaneously
-	( echo "$SUDOPWD" | sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) --audiocodec aaclc --audiobitrate 64 --audiovolume 100 "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts" ) &
-	sleep 1.5	#wait briefly to ensure fileapp starts first
+	( echo "$SUDOPWD" | sudo -S fileapp -o SAME -m $MUX_KBPS --enable-hevc --quality $((PRESET+1)) "$FILEPATH" "intermediate/$BASENAME/$FILENAME.ts" ) &
+	sleep 2	#wait briefly to ensure fileapp starts first
 	while fa_pid=$(pgrep fileapp)
 	do
 		# 100.0% is a good threshold to filter out encoding period

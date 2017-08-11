@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # See show_help() below for description
 
-#CLOUD_ADDR='96.87.115.134:5118'
-CLOUD_ADDR='10.1.10.115:8080'
+#CLOUD_ADDR='96.87.115.134:5118'	#public-access
+CLOUD_ADDR='10.1.10.115:8080'		#local-access
 
 show_help() {
 cat << EOF
